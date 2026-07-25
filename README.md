@@ -17,25 +17,49 @@ Upload any PDF and instantly chat with it — ask questions, extract data, and g
 - **🌙 Premium Dark UI** — Glassmorphism-inspired dark design with smooth micro-animations
 - **☁️ Cloud PDF Storage** — PDFs stored in Supabase Storage; embeddings in Pinecone
 
----
-
 ## 🏗️ Architecture
 
-**1. User uploads a PDF** → File is sent to `/api/create-chat` via drag & drop on the home page.
+```mermaid
+flowchart TD
+    %% Styling Configuration
+    classDef client fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff,rx:6px,ry:6px;
+    classDef storage fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5,rx:6px,ry:6px;
+    classDef processing fill:#311042,stroke:#c084fc,stroke-width:2px,color:#f3e8ff,rx:6px,ry:6px;
+    classDef database fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#ffedd5,rx:6px,ry:6px;
+    classDef ai fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f0f9ff,rx:6px,ry:6px;
 
-**2. PDF is stored** → The raw PDF file is uploaded to **Supabase Storage** (cloud CDN) and the URL is saved in **Neon PostgreSQL** via Drizzle ORM.
+    %% Nodes Definitions
+    S1["📤 Step 1: PDF Upload<br/>(User Drag & Drop)"]:::client
+    S2["☁️ Step 2: Cloud Storage<br/>(Supabase Storage CDN)"]:::storage
+    S3["✂️ Step 3: Parse & Chunk<br/>(pdf-parse Text Split)"]:::processing
+    S4["🔏 Step 4: Vectorize<br/>(gemini-embedding-001)"]:::ai
+    S5["🌲 Step 5: Vector Index<br/>(Pinecone Serverless DB)"]:::database
+    S6["🔍 Step 6: Semantic Query<br/>(Cosine Similarity Search)"]:::database
+    S7["🧠 Step 7: RAG Synthesis<br/>(Google Gemini 3.6 Flash)"]:::ai
+    S8["✨ Step 8: Live Response<br/>(UI Streams + Neon DB Log)"]:::client
 
-**3. Text is parsed & chunked** → `pdf-parse` extracts all text from the PDF, which is split into overlapping ~1000 character chunks for better context coverage.
+    %% Node Connections
+    S1 ──► S2
+    S2 ──► S3
+    S3 ──► S4
+    S4 ──► S5
+    S5 ─. Query Search .─► S6
+    S6 ──► S7
+    S7 ──► S8
+```
 
-**4. Chunks are embedded** → Each chunk is sent to **Google Gemini `gemini-embedding-001`** to generate a 768-dimensional vector representing its semantic meaning.
+### 🗓️ The 8-Step System Pipeline
 
-**5. Vectors stored in Pinecone** → All chunk embeddings are stored in a **Pinecone serverless vector index** (namespaced per chat) for fast semantic retrieval.
-
-**6. User asks a question** → The question is embedded into a 768-dim vector and a **cosine similarity search** is run against Pinecone to fetch the top 5 most relevant PDF chunks.
-
-**7. Context is built & sent to Gemini** → The retrieved chunks + chat history + user question are combined into a prompt and sent to **Google Gemini 3.6 Flash**, which streams back a response.
-
-**8. Response is saved & displayed** → The AI answer is saved to **Neon PostgreSQL** and rendered in the UI with formatted markdown and page citation badges (🏷️ Page X).
+| Step | Phase | Process Flow |
+| :--- | :--- | :--- |
+| **01** | **PDF Upload** | User drops a document into the upload zone; Next.js routes it to `/api/create-chat`. |
+| **02** | **Cloud Storage** | The raw PDF is stored securely on **Supabase Storage** and its link is logged in **Neon DB**. |
+| **03** | **Text Extraction** | `pdf-parse` extracts raw text, which is parsed into overlapping 1000-character context blocks. |
+| **04** | **Semantic Embedding** | Chunks are sent to **Google Gemini (`gemini-embedding-001`)** to produce 768-dimension vectors. |
+| **05** | **Vector DB Seeding** | Embeddings are loaded into a namespaced index in **Pinecone Vector Database** for instant matching. |
+| **06** | **Semantic Retrieval** | When a query arrives, it is embedded and matched against Pinecone to locate the top 5 relevant text segments. |
+| **07** | **Context Synthesis** | The matching text segments, chat history, and system instructions are compiled and fed to **Gemini 3.6 Flash**. |
+| **08** | **Response & Log** | The generated response streams back to the user interface and is simultaneously logged to **Neon PostgreSQL**. |
 
 ---
 
