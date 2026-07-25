@@ -21,95 +21,21 @@ Upload any PDF and instantly chat with it — ask questions, extract data, and g
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         USER BROWSER                                │
-│                                                                     │
-│  ┌──────────────┐  ┌─────────────────────┐  ┌────────────────────┐ │
-│  │   Sidebar    │  │    PDF Preview      │  │  AI Chat Studio    │ │
-│  │  (All Chats) │◄─┤  (Native iframe)    │  │  (RAG Q&A)         │ │
-│  │  + New Chat  │  │                     │  │                    │ │
-│  └──────────────┘  └─────────────────────┘  └────────────────────┘ │
-│        ↕ Drag Handle               ↕ Drag Handle                   │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ HTTP / Next.js App Router
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      NEXT.JS SERVER (App Router)                    │
-│                                                                     │
-│  ┌────────────────┐   ┌──────────────────┐   ┌──────────────────┐  │
-│  │ /api/create-   │   │  /api/chat        │   │ /api/get-        │  │
-│  │ chat           │   │  (Streaming SSE)  │   │ messages         │  │
-│  │                │   │                  │   │                  │  │
-│  │ 1. Upload PDF  │   │ 1. Embed query   │   │ Fetch history    │  │
-│  │ 2. Parse text  │   │ 2. Search        │   │ from Neon DB     │  │
-│  │ 3. Chunk text  │   │    Pinecone      │   │                  │  │
-│  │ 4. Embed       │   │ 3. Build context │   └──────────────────┘  │
-│  │ 5. Store       │   │ 4. Call Gemini   │                         │
-│  │    Pinecone    │   │ 5. Stream reply  │                         │
-│  └────────────────┘   └──────────────────┘                         │
-└───────────┬──────────────────┬──────────────────┬───────────────────┘
-            │                  │                  │
-            ▼                  ▼                  ▼
-┌───────────────┐   ┌──────────────────┐   ┌─────────────────────────┐
-│   SUPABASE    │   │    PINECONE      │   │   NEON POSTGRESQL DB    │
-│   STORAGE     │   │   VECTOR DB      │   │   (Drizzle ORM)         │
-│               │   │                  │   │                         │
-│  Stores raw   │   │  Stores 768-dim  │   │  Stores:                │
-│  PDF files    │   │  text embeddings │   │  - chats table          │
-│  (cloud CDN)  │   │  per PDF chunk   │   │  - messages table       │
-│               │   │  (semantic       │   │  - user sessions        │
-│               │   │   search)        │   │                         │
-└───────────────┘   └──────────────────┘   └─────────────────────────┘
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │  GOOGLE GEMINI API   │
-                    │                      │
-                    │  gemini-1.5-flash    │  ← Chat Generation
-                    │  gemini-embedding-   │  ← Text Embeddings
-                    │  001 (768-dim)       │     (768 dimensions)
-                    └──────────────────────┘
-```
+**1. User uploads a PDF** → File is sent to `/api/create-chat` via drag & drop on the home page.
 
-### RAG Pipeline (Step-by-Step)
+**2. PDF is stored** → The raw PDF file is uploaded to **Supabase Storage** (cloud CDN) and the URL is saved in **Neon PostgreSQL** via Drizzle ORM.
 
-```
-PDF Upload
-    │
-    ▼
-Parse PDF text (pdf-parse)
-    │
-    ▼
-Split into overlapping chunks (~1000 chars each)
-    │
-    ▼
-Embed each chunk → Google gemini-embedding-001 → 768-dim vector
-    │
-    ▼
-Store vectors in Pinecone (namespace = chatId)
-    │
-    ▼
-User asks question
-    │
-    ▼
-Embed question → 768-dim vector
-    │
-    ▼
-Semantic search Pinecone → top 5 most relevant chunks
-    │
-    ▼
-Build prompt: [System] + [Context chunks] + [Chat history] + [User question]
-    │
-    ▼
-Send to Google Gemini 3.6 Flash → Stream response
-    │
-    ▼
-Save Q&A to Neon PostgreSQL
-    │
-    ▼
-Render formatted response with page citations (🏷️ Page X)
-```
+**3. Text is parsed & chunked** → `pdf-parse` extracts all text from the PDF, which is split into overlapping ~1000 character chunks for better context coverage.
+
+**4. Chunks are embedded** → Each chunk is sent to **Google Gemini `gemini-embedding-001`** to generate a 768-dimensional vector representing its semantic meaning.
+
+**5. Vectors stored in Pinecone** → All chunk embeddings are stored in a **Pinecone serverless vector index** (namespaced per chat) for fast semantic retrieval.
+
+**6. User asks a question** → The question is embedded into a 768-dim vector and a **cosine similarity search** is run against Pinecone to fetch the top 5 most relevant PDF chunks.
+
+**7. Context is built & sent to Gemini** → The retrieved chunks + chat history + user question are combined into a prompt and sent to **Google Gemini 3.6 Flash**, which streams back a response.
+
+**8. Response is saved & displayed** → The AI answer is saved to **Neon PostgreSQL** and rendered in the UI with formatted markdown and page citation badges (🏷️ Page X).
 
 ---
 
