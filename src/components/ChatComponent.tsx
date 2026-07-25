@@ -54,9 +54,36 @@ const ChatComponent = ({ chatId, summary }: Props) => {
     setMode("chat");
   };
 
+  const [summaryHeight, setSummaryHeight] = React.useState<number>(160);
+  const [isSummaryCollapsed, setIsSummaryCollapsed] = React.useState<boolean>(false);
+  const isResizing = React.useRef(false);
+
+  const startResizing = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const container = document.getElementById("message-container");
+    if (container) {
+      const containerRect = container.getBoundingClientRect();
+      const newHeight = Math.max(60, Math.min(450, e.clientY - containerRect.top - 60));
+      setSummaryHeight(newHeight);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
   return (
     <div
-      className="relative max-h-screen overflow-scroll flex flex-col h-full bg-slate-50/50"
+      className="relative max-h-screen overflow-y-auto flex flex-col h-full bg-slate-50/50"
       id="message-container"
     >
       {/* header & mode switcher */}
@@ -201,13 +228,46 @@ const ChatComponent = ({ chatId, summary }: Props) => {
         </div>
       ) : (
         <>
-          {/* summary */}
-          {summary && (
-            <div className="mx-4 mt-4 p-4 bg-blue-50 text-blue-900 rounded-lg text-sm shadow-sm ring-1 ring-blue-200">
-              <h4 className="font-semibold mb-2 text-blue-950 flex items-center gap-1.5">
-                ✨ Extracted Document Insights:
+          {/* resizable summary insights panel */}
+          {summary && !isSummaryCollapsed && (
+            <div 
+              style={{ height: `${summaryHeight}px` }}
+              className="mx-4 mt-4 bg-blue-50 text-blue-900 rounded-lg text-sm shadow-sm ring-1 ring-blue-200 flex flex-col overflow-hidden relative shrink-0"
+            >
+              <h4 className="font-semibold px-3 py-2 text-blue-950 flex items-center justify-between gap-1.5 shrink-0 border-b border-blue-100 bg-blue-100/50">
+                <span className="flex items-center gap-1.5">✨ Extracted Document Insights:</span>
+                <button 
+                  type="button"
+                  onClick={() => setIsSummaryCollapsed(true)} 
+                  className="text-xs text-blue-700 hover:text-blue-950 hover:underline font-semibold"
+                >
+                  Hide
+                </button>
               </h4>
-              <p className="whitespace-pre-wrap">{summary}</p>
+              <div className="flex-1 overflow-y-auto p-3 whitespace-pre-wrap select-text leading-relaxed">
+                {summary}
+              </div>
+              
+              {/* Horizontal resize handle */}
+              <div 
+                onMouseDown={startResizing}
+                className="h-2 bg-blue-100 hover:bg-blue-400 cursor-row-resize flex items-center justify-center shrink-0 border-t border-blue-200 transition-all group"
+                title="Drag up/down to resize insights summary panel"
+              >
+                <div className="w-12 h-1 bg-blue-300 group-hover:bg-white rounded-full transition" />
+              </div>
+            </div>
+          )}
+
+          {summary && isSummaryCollapsed && (
+            <div className="mx-4 mt-4 flex justify-end shrink-0">
+              <button 
+                type="button"
+                onClick={() => setIsSummaryCollapsed(false)}
+                className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg shadow-sm transition"
+              >
+                💡 Show Document Insights Summary
+              </button>
             </div>
           )}
 
