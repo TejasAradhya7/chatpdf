@@ -42,17 +42,6 @@ export default async function Home() {
         <div className="w-full">
           <FileUpload />
         </div>
-
-        {/* Go to Active Chat Studio button linking to the latest uploaded document */}
-        {latestChat && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 w-full max-w-md">
-            <Link href={`/chat/${latestChat.id}`} className="w-full">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 text-base rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                Open Chat Studio & Preview ➔ ({latestChat.pdfName})
-              </Button>
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );

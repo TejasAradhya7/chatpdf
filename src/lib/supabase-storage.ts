@@ -16,17 +16,25 @@ export async function uploadToSupabase(
       .upload(file_key, file);
 
     if (error) {
-      console.warn("Supabase Storage unavailable, using local storage fallback:", error.message);
-      return uploadLocally(file);
+      console.warn("Supabase Storage unavailable, trying local storage fallback:", error.message);
+      try {
+        return await uploadLocally(file);
+      } catch (localErr: any) {
+        throw new Error(`Supabase upload failed: "${error.message}" (Ensure a public bucket named 'chatpdf' is created in your Supabase dashboard)`);
+      }
     }
 
     return {
       file_key,
       file_name: file.name,
     };
-  } catch (error) {
-    console.warn("Supabase Storage error, using local storage fallback:", error);
-    return uploadLocally(file);
+  } catch (error: any) {
+    console.warn("Supabase Storage error, trying local storage fallback:", error);
+    try {
+      return await uploadLocally(file);
+    } catch (localErr: any) {
+      throw new Error(`Supabase error: "${error.message || error}" (Ensure your Supabase project credentials are correct and storage bucket is configured)`);
+    }
   }
 }
 
