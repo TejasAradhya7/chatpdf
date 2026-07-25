@@ -22,11 +22,11 @@ Upload any PDF and instantly chat with it — ask questions, extract data, and g
 ```mermaid
 flowchart TD
     %% Styling Configuration
-    classDef client fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff,rx:6px,ry:6px;
-    classDef storage fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5,rx:6px,ry:6px;
-    classDef processing fill:#311042,stroke:#c084fc,stroke-width:2px,color:#f3e8ff,rx:6px,ry:6px;
-    classDef database fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#ffedd5,rx:6px,ry:6px;
-    classDef ai fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f0f9ff,rx:6px,ry:6px;
+    classDef client fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff;
+    classDef storage fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#d1fae5;
+    classDef processing fill:#311042,stroke:#c084fc,stroke-width:2px,color:#f3e8ff;
+    classDef database fill:#7c2d12,stroke:#fb923c,stroke-width:2px,color:#ffedd5;
+    classDef ai fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f0f9ff;
 
     %% Nodes Definitions
     S1["📤 Step 1: PDF Upload<br/>(User Drag & Drop)"]:::client
