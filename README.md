@@ -39,13 +39,13 @@ flowchart TD
     S8["✨ Step 8: Live Response<br/>(UI Streams + Neon DB Log)"]:::client
 
     %% Node Connections
-    S1 ──► S2
-    S2 ──► S3
-    S3 ──► S4
-    S4 ──► S5
-    S5 ─. Query Search .─► S6
-    S6 ──► S7
-    S7 ──► S8
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
+    S5 -. Query Search .-> S6
+    S6 --> S7
+    S7 --> S8
 ```
 
 ### 🗓️ The 8-Step System Pipeline
